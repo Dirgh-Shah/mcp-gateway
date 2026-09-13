@@ -1,0 +1,31 @@
+services:
+  upstream:
+    build: .
+    command: ["python", "upstream/demo_server.py", "--host", "0.0.0.0", "--port", "8000"]
+    expose:
+      - "8000"
+
+  gateway:
+    build: .
+    depends_on:
+      - upstream
+    ports:
+      - "8080:8080"
+    environment:
+      MCPG_SIGNING_SECRET: ${MCPG_SIGNING_SECRET:?set MCPG_SIGNING_SECRET in .env}
+      MCPG_POLICY_FILE: /srv/config/policy.yaml
+      # Keys and the audit database live on a named volume, not a bind mount,
+      # so the container's non-root user owns them regardless of host uid.
+      MCPG_KEYS_FILE: /srv/data/keys.json
+      MCPG_AUDIT_DB: /srv/data/audit.db
+      MCPG_SCANNER_MODE: ${MCPG_SCANNER_MODE:-redact}
+      MCPG_RATE_LIMIT_RPM: ${MCPG_RATE_LIMIT_RPM:-60}
+      MCPG_RATE_LIMIT_BURST: ${MCPG_RATE_LIMIT_BURST:-10}
+    volumes:
+      # policy.yaml is mounted rather than baked in, so editing a rule is a
+      # restart rather than an image rebuild.
+      - ./policy.yaml:/srv/config/policy.yaml:ro
+      - gateway-data:/srv/data
+
+volumes:
+  gateway-data:

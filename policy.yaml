@@ -1,0 +1,74 @@
+version: 1
+
+# Where tool calls are forwarded. The first upstream whose `tools` patterns
+# match a tool name wins, so order is priority.
+upstreams:
+  - name: demo
+    # Docker Compose service name. Running the gateway directly on your
+    # machine instead? Change this to http://localhost:8000/mcp.
+    url: http://upstream:8000/mcp
+    tools: ["*"]
+
+# Deny by default. A role must exist and must explicitly allow a pattern.
+# A matching deny pattern beats any allow.
+roles:
+
+  # Read-only. Cannot delete, cannot reach build configuration, and is never
+  # shown either in tools/list.
+  reader:
+    allow:
+      - "search_*"
+      - "get_*"
+      - "read_*"
+    deny:
+      - "delete_*"
+      - "fetch_*"
+      - "*_admin"
+    limits:
+      max_string_length: 512
+      max_collection_size: 25
+    arguments:
+      search_documents:
+        query:
+          max_length: 256
+        scope:
+          enum: ["team", "personal"]
+        limit:
+          max_items: 25
+
+  # May delete. `fetch_*` is allowed, but the specific deny on fetch_ci_config
+  # overrides it: deny always beats allow.
+  editor:
+    allow:
+      - "search_*"
+      - "get_*"
+      - "read_*"
+      - "delete_*"
+      - "fetch_*"
+    deny:
+      - "fetch_ci_config"
+    limits:
+      max_string_length: 2048
+      max_collection_size: 100
+    arguments:
+      search_documents:
+        query:
+          max_length: 1024
+
+  # Deployment automation. May read build configuration, may not delete.
+  # This is the role the scanner demo uses.
+  operator:
+    allow:
+      - "*"
+    deny:
+      - "delete_*"
+    limits:
+      max_string_length: 2048
+      max_collection_size: 100
+
+  # Operates the gateway itself: may verify the audit chain, may call nothing.
+  auditor:
+    admin: true
+    allow: []
+    deny:
+      - "*"
