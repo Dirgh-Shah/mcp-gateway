@@ -1,4 +1,5 @@
 # MCP Gateway
+[![ci](https://github.com/Dirgh-Shah/mcp-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/Dirgh-Shah/mcp-gateway/actions/workflows/ci.yml)
 
 A reverse proxy that sits between an AI client and one or more MCP servers and
 enforces what the model is allowed to do: authentication, per-role tool
